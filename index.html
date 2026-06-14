@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperInstance Fleet Dashboard 🦀</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--panel:#13131a;--border:#2a2a3a;
+  --green:#00ff88;--red:#ff3366;--gold:#ffaa00;--blue:#00aaff;--gray:#555;
+  --text:#e0e0e8;--dim:#8888aa;
+  --mono:'SF Mono','Fira Code','Cascadia Code',Consolas,monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0d0d14,#0a0a0f)}
+header h1{font-size:1.4rem;font-weight:600;letter-spacing:.5px}
+header .sub{color:var(--dim);font-size:.8rem;margin-left:auto;font-family:var(--mono)}
+.container{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);flex:1}
+.panel{background:var(--panel);padding:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.panel-title{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);border-bottom:1px solid var(--border);padding-bottom:8px}
+.panel-title strong{color:var(--text)}
+footer{padding:10px 24px;border-top:1px solid var(--border);text-align:center;color:var(--dim);font-size:.8rem;font-family:var(--mono)}
+footer .law{color:var(--gold)}
+
+/* Controls */
+.controls{display:flex;flex-direction:column;gap:8px}
+.ctrl-row{display:flex;align-items:center;gap:8px;font-size:.8rem}
+.ctrl-row label{flex:0 0 90px;color:var(--dim)}
+.ctrl-row input[type=range]{flex:1;accent-color:var(--green);height:4px}
+.ctrl-row .val{flex:0 0 60px;text-align:right;font-family:var(--mono);color:var(--green);font-size:.75rem}
+
+/* Canvas */
+canvas{display:block;border-radius:6px;background:#08080d}
+#fleetCanvas{width:100%;aspect-ratio:1;cursor:crosshair}
+
+/* Meters */
+.meter{height:24px;background:#08080d;border-radius:4px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.meter-fill{height:100%;transition:width .15s ease;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-family:var(--mono);color:#000;font-weight:700;white-space:nowrap}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{background:#08080d;border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center}
+.stat .label{font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+.stat .value{font-family:var(--mono);font-size:1rem;font-weight:600;margin-top:2px}
+
+/* Conservation bar */
+.cons-bar{height:40px;border-radius:6px;overflow:hidden;display:flex;border:1px solid var(--border);position:relative}
+.cons-gamma{background:linear-gradient(90deg,#ffaa00,#ffc833);transition:width .2s;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.7rem;font-weight:700;color:#000;white-space:nowrap}
+.cons-eta{background:linear-gradient(90deg,#0088dd,#00aaff);transition:width .2s;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.7rem;font-weight:700;color:#000;white-space:nowrap}
+
+/* Chain rule */
+.chain{font-family:var(--mono);font-size:.8rem;text-align:center;padding:8px;background:#08080d;border:1px solid var(--border);border-radius:4px;line-height:1.6}
+.chain .var{color:var(--gold)}
+.chain .var2{color:var(--blue)}
+.chain .eq{color:var(--dim)}
+
+/* Alignment text */
+.align-text{font-size:.78rem;color:var(--dim);text-align:center;line-height:1.5}
+.align-text strong{color:var(--text)}
+
+/* Bar chart */
+.bars{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;padding-right:4px}
+.bars::-webkit-scrollbar{width:4px}
+.bars::-webkit-scrollbar-track{background:#08080d}
+.bars::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.bar-row{display:flex;align-items:center;gap:6px;font-size:.72rem;height:22px;position:relative}
+.bar-label{flex:0 0 85px;text-align:right;color:var(--dim);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:#08080d;border-radius:3px;height:18px;overflow:hidden;position:relative;cursor:pointer;transition:height .15s}
+.bar-track:hover{height:24px}
+.bar-fill{height:100%;border-radius:3px;transition:width .3s ease;display:flex;align-items:center;padding-right:4px;justify-content:flex-end}
+.bar-val{font-family:var(--mono);font-size:.65rem;color:#000;font-weight:700;white-space:nowrap}
+
+/* Legend */
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.68rem}
+.legend-item{display:flex;align-items:center;gap:4px;color:var(--dim)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* Tooltip */
+.tooltip{position:fixed;pointer-events:none;background:#1a1a24;border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:.72rem;z-index:100;display:none;box-shadow:0 4px 20px rgba(0,0,0,.6);max-width:240px}
+.tooltip strong{color:var(--green)}
+.tooltip .tk{color:var(--dim)}
+.tooltip .tv{color:var(--text);font-family:var(--mono)}
+
+/* Tick indicator */
+.tick-indicator{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--dim);font-family:var(--mono)}
+.tick-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Mini chart overlay */
+#convergeChart{width:100%;height:80px;border-radius:4px;background:#08080d;border:1px solid var(--border)}
+
+/* Responsive */
+@media(max-width:900px){
+  .container{grid-template-columns:1fr}
+  .panel{min-height:auto}
+}
+
+/* Slider accent */
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:2px solid #0a0a0f}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:2px solid #0a0a0f}
+input[type=range].gold::-webkit-slider-thumb{background:var(--gold)}
+input[type=range].gold::-moz-range-thumb{background:var(--gold)}
+input[type=range].gold{accent-color:var(--gold)}
+
+/* Info note */
+.note{font-size:.7rem;color:var(--dim);line-height:1.4;font-style:italic}
+.note strong{color:var(--text);font-style:normal}
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.6rem">🦀</span>
+  <h1>SuperInstance Fleet Dashboard</h1>
+  <span class="sub" id="clock">--:--:--</span>
+</header>
+
+<div class="container">
+
+  <!-- PANEL 1: FLEET CANCELLATION -->
+  <section class="panel" id="panel1">
+    <div class="panel-title"><strong>01</strong> · Fleet Cancellation Visualizer</div>
+
+    <div class="controls">
+      <div class="ctrl-row">
+        <label>Fleet size</label>
+        <input type="range" id="fleetSize" min="10" max="1000" value="100" step="1">
+        <span class="val" id="fleetSizeVal">100</span>
+      </div>
+      <div class="ctrl-row">
+        <label>Bias (η→γ)</label>
+        <input type="range" id="bias" min="-50" max="50" value="0" step="1" class="gold">
+        <span class="val" id="biasVal" style="color:var(--gold)">0.00</span>
+      </div>
+    </div>
+
+    <canvas id="fleetCanvas" width="400" height="400"></canvas>
+
+    <div class="tick-indicator">
+      <span class="tick-dot"></span>
+      <span>Tick <span id="tickNum">0</span> · <span id="fps">0</span> fps</span>
+    </div>
+
+    <div class="meter" title="Fleet signal sum / fleet size">
+      <div class="meter-fill" id="sumMeter" style="width:50%;background:var(--gray)">Σ/n = 0.000</div>
+    </div>
+
+    <canvas id="convergeChart" width="400" height="80"></canvas>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Σ signals</div><div class="value" id="sumSignals" style="color:var(--green)">0</div></div>
+      <div class="stat"><div class="label">|Σ|/n</div><div class="value" id="absRatio" style="color:var(--red)">0.000</div></div>
+      <div class="stat"><div class="label">Theory δ</div><div class="value" id="theoryDelta" style="color:var(--gold)">0.100</div></div>
+    </div>
+
+    <div class="note">Each dot is an agent broadcasting <strong>{−1, 0, +1}</strong>. The fleet sum converges to <strong>0</strong> as n grows — this is cancellation. The theoretical decay is <strong>δ(n) = 1/√n</strong>.</div>
+  </section>
+
+  <!-- PANEL 2: CONSERVATION IDENTITY -->
+  <section class="panel" id="panel2">
+    <div class="panel-title"><strong>02</strong> · Conservation Identity Calculator</div>
+
+    <div class="controls">
+      <div class="ctrl-row">
+        <label>γ (mutual info)</label>
+        <input type="range" id="gammaSlider" min="0" max="1585" value="600" step="1" class="gold">
+        <span class="val" id="gammaVal" style="color:var(--gold)">0.600</span>
+      </div>
+      <div class="ctrl-row">
+        <label>C (capacity)</label>
+        <input type="range" id="cSlider" min="100" max="1585" value="1585" step="1">
+        <span class="val" id="cVal">1.585</span>
+      </div>
+    </div>
+
+    <div class="cons-bar">
+      <div class="cons-gamma" id="gammaBar" style="width:37.9%">γ 0.600</div>
+      <div class="cons-eta" id="etaBar" style="width:62.1%">η 0.985</div>
+    </div>
+
+    <div class="chain">
+      <span class="var">H(X)</span>
+      <span class="eq">=</span>
+      <span class="var">I(X;G)</span>
+      <span class="eq">+</span>
+      <span class="var2">H(X|G)</span>
+      <br>
+      <span class="var">C</span>
+      <span class="eq">=</span>
+      <span class="var">γ</span>
+      <span class="eq">+</span>
+      <span class="var2">η</span>
+      <br>
+      <span style="font-size:.7rem;color:var(--dim)">= log₂(3) ≈ 1.585 bits</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">γ (bits)</div><div class="value" id="gammaStat" style="color:var(--gold)">0.600</div></div>
+      <div class="stat"><div class="label">η (bits)</div><div class="value" id="etaStat" style="color:var(--blue)">0.985</div></div>
+      <div class="stat"><div class="label">C (bits)</div><div class="value" id="cStat">1.585</div></div>
+    </div>
+
+    <div class="align-text" id="alignText">
+      Agent is <strong>37.9%</strong> aligned with guide signal.<br>
+      <strong>62.1%</strong> of capacity is residual entropy (η).<br>
+      γ/C ratio: <strong>0.379</strong>
+    </div>
+
+    <div class="note">
+      <strong>γ</strong> = mutual information between agent and guide.<br>
+      <strong>η</strong> = conditional entropy (agent's freedom).<br>
+      They are conserved: increasing γ decreases η by exactly the same amount. You cannot increase one without decreasing the other. This is the <strong>law</strong>.
+    </div>
+  </section>
+
+  <!-- PANEL 3: POLYGLOT BENCHMARK -->
+  <section class="panel" id="panel3">
+    <div class="panel-title"><strong>03</strong> · Polyglot Benchmark · signals/s</div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Systems</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Functional</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Scientific</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Legacy</div>
+    </div>
+
+    <div class="bars" id="bars"></div>
+
+    <div class="note">Throughput in <strong>signals/second</strong> on identical ternary workloads. Log scale reveals <strong>4 orders of magnitude</strong> spread. Rust leads; the law holds in every language.</div>
+  </section>
+
+</div>
+
+<footer>
+  <span class="law">γ + η = C</span> &nbsp;|&nbsp; Conservation Law of Ternary Fleets &nbsp;|&nbsp; SuperInstance © 2026
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============ GLOBALS ============
+const LOG2_3 = Math.log2(3); // ≈ 1.585
+let tickCount = 0;
+let lastFrameTime = performance.now();
+let frameCount = 0;
+let currentFps = 0;
+let convergeHistory = [];
+
+// ============ PANEL 1: FLEET CANCELLATION ============
+const fleetCanvas = document.getElementById('fleetCanvas');
+const fctx = fleetCanvas.getContext('2d');
+const convCanvas = document.getElementById('convergeChart');
+const cctx = convCanvas.getContext('2d');
+
+let agents = [];
+let fleetN = 100;
+let biasVal = 0;
+
+function resizeCanvas(){
+  const r = fleetCanvas.getBoundingClientRect();
+  fleetCanvas.width = r.width * devicePixelRatio;
+  fleetCanvas.height = r.height * devicePixelRatio;
+  fctx.scale(devicePixelRatio, devicePixelRatio);
+  const cr = convCanvas.getBoundingClientRect();
+  convCanvas.width = cr.width * devicePixelRatio;
+  convCanvas.height = cr.height * devicePixelRatio;
+  cctx.scale(devicePixelRatio, devicePixelRatio);
+}
+
+function initAgents(n){
+  fleetN = n;
+  agents = new Array(n);
+  for(let i=0;i<n;i++) agents[i] = {s:0, phase: Math.random()*Math.PI*2};
+}
+
+function tickFleet(){
+  const bias = biasVal / 50; // -1..1
+  for(let i=0;i<agents.length;i++){
+    const r = Math.random() + bias * 0.3;
+    agents[i].s = r < 0.33 ? -1 : r < 0.67 ? 0 : 1;
+    agents[i].phase += 0.02;
+  }
+  tickCount++;
+}
+
+function drawFleet(){
+  const w = fleetCanvas.width / devicePixelRatio;
+  const h = fleetCanvas.height / devicePixelRatio;
+  fctx.clearRect(0,0,w,h);
+
+  const grid = Math.ceil(Math.sqrt(agents.length));
+  const cell = Math.min(w,h) / grid;
+  const dotR = cell * 0.32;
+
+  for(let i=0;i<agents.length;i++){
+    const a = agents[i];
+    const col = i % grid;
+    const row = Math.floor(i / grid);
+    const x = col * cell + cell/2;
+    const y = row * cell + cell/2;
+
+    // Glow
+    const pulse = 0.7 + 0.3 * Math.sin(a.phase);
+    let color;
+    if(a.s === -1) color = `rgba(255,51,102,${pulse})`;
+    else if(a.s === 1) color = `rgba(0,255,136,${pulse})`;
+    else color = `rgba(90,90,110,${pulse*0.6})`;
+
+    fctx.beginPath();
+    fctx.arc(x, y, dotR, 0, Math.PI*2);
+    fctx.fillStyle = color;
+    fctx.fill();
+
+    // Inner highlight
+    if(a.s !== 0){
+      fctx.beginPath();
+      fctx.arc(x - dotR*0.3, y - dotR*0.3, dotR*0.3, 0, Math.PI*2);
+      fctx.fillStyle = 'rgba(255,255,255,0.15)';
+      fctx.fill();
+    }
+  }
+
+  // Draw grid lines
+  fctx.strokeStyle = 'rgba(42,42,58,0.3)';
+  fctx.lineWidth = 0.5;
+  for(let i=0;i<=grid;i++){
+    fctx.beginPath();
+    fctx.moveTo(i*cell, 0); fctx.lineTo(i*cell, grid*cell);
+    fctx.moveTo(0, i*cell); fctx.lineTo(grid*cell, i*cell);
+    fctx.stroke();
+  }
+}
+
+function drawConverge(){
+  const w = convCanvas.width / devicePixelRatio;
+  const h = convCanvas.height / devicePixelRatio;
+  cctx.clearRect(0,0,w,h);
+  cctx.fillStyle = '#08080d';
+  cctx.fillRect(0,0,w,h);
+
+  // Axes
+  cctx.strokeStyle = '#2a2a3a';
+  cctx.lineWidth = 1;
+  cctx.beginPath();
+  cctx.moveTo(0, h-1); cctx.lineTo(w, h-1);
+  cctx.stroke();
+
+  if(convergeHistory.length < 2) return;
+
+  const maxPts = convergeHistory.length;
+
+  // Theory curve: 1/sqrt(n)
+  cctx.strokeStyle = 'rgba(255,170,0,0.5)';
+  cctx.lineWidth = 1.5;
+  cctx.setLineDash([3,3]);
+  cctx.beginPath();
+  for(let px=0; px<w; px++){
+    const frac = px / w;
+    const n = Math.max(1, frac * fleetN);
+    const theo = 1 / Math.sqrt(n);
+    const py = h - theo * h * 3;
+    if(px===0) cctx.moveTo(px, Math.max(0,py)); else cctx.lineTo(px, Math.max(0,py));
+  }
+  cctx.stroke();
+  cctx.setLineDash([]);
+
+  // Actual |Σ|/n history
+  cctx.strokeStyle = '#00ff88';
+  cctx.lineWidth = 1.5;
+  cctx.beginPath();
+  for(let i=0;i<convergeHistory.length;i++){
+    const px = (i / (maxPts-1)) * w;
+    const py = h - convergeHistory[i] * h * 3;
+    if(i===0) cctx.moveTo(px, Math.max(0,py)); else cctx.lineTo(px, Math.max(0,py));
+  }
+  cctx.stroke();
+
+  // Labels
+  cctx.fillStyle = '#8888aa';
+  cctx.font = '9px monospace';
+  cctx.fillText('|Σ|/n', 4, 12);
+  cctx.fillText('δ=1/√n (theory)', w-90, 12);
+  cctx.fillText('tick→', w-30, h-2);
+}
+
+function updateStats(){
+  let sum = 0;
+  for(const a of agents) sum += a.s;
+  const ratio = agents.length > 0 ? sum / agents.length : 0;
+  const absRatio = Math.abs(ratio);
+  const theory = 1 / Math.sqrt(Math.max(1, agents.length));
+
+  document.getElementById('sumSignals').textContent = sum >= 0 ? '+'+sum : sum;
+  document.getElementById('sumSignals').style.color = sum === 0 ? 'var(--dim)' : sum > 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('absRatio').textContent = absRatio.toFixed(4);
+  document.getElementById('theoryDelta').textContent = theory.toFixed(4);
+
+  // Meter (centered at 50%)
+  const meterPct = 50 + ratio * 50;
+  const meter = document.getElementById('sumMeter');
+  meter.style.width = Math.abs(ratio*100) + '%';
+  meter.style.marginLeft = ratio >= 0 ? '50%' : (50 + ratio*50) + '%';
+  meter.style.background = ratio === 0 ? 'var(--gray)' : ratio > 0 ? 'var(--green)' : 'var(--red)';
+  meter.textContent = 'Σ/n = ' + (ratio >= 0 ? '+' : '') + ratio.toFixed(4);
+
+  document.getElementById('tickNum').textContent = tickCount;
+  document.getElementById('fps').textContent = currentFps;
+
+  // Track convergence history (keep last 120)
+  convergeHistory.push(absRatio);
+  if(convergeHistory.length > 120) convergeHistory.shift();
+}
+
+// Animation loop
+function animate(now){
+  // FPS calc
+  frameCount++;
+  if(now - lastFrameTime >= 1000){
+    currentFps = frameCount;
+    frameCount = 0;
+    lastFrameTime = now;
+  }
+
+  tickFleet();
+  drawFleet();
+  drawConverge();
+  updateStats();
+
+  requestAnimationFrame(animate);
+}
+
+// Controls
+document.getElementById('fleetSize').addEventListener('input', e => {
+  const n = parseInt(e.target.value);
+  document.getElementById('fleetSizeVal').textContent = n;
+  initAgents(n);
+  convergeHistory = [];
+});
+
+document.getElementById('bias').addEventListener('input', e => {
+  biasVal = parseInt(e.target.value);
+  document.getElementById('biasVal').textContent = (biasVal/100).toFixed(2);
+});
+
+// ============ PANEL 2: CONSERVATION ============
+const gammaSlider = document.getElementById('gammaSlider');
+const cSlider = document.getElementById('cSlider');
+
+function updateConservation(){
+  const gamma = parseInt(gammaSlider.value) / 1000;
+  let C = parseInt(cSlider.value) / 1000;
+  const eta = Math.max(0, C - gamma);
+
+  document.getElementById('gammaVal').textContent = gamma.toFixed(3);
+  document.getElementById('cVal').textContent = C.toFixed(3);
+
+  const gPct = (gamma / C) * 100;
+  const ePct = (eta / C) * 100;
+
+  document.getElementById('gammaBar').style.width = gPct + '%';
+  document.getElementById('gammaBar').textContent = 'γ ' + gamma.toFixed(3);
+  document.getElementById('etaBar').style.width = ePct + '%';
+  document.getElementById('etaBar').textContent = 'η ' + eta.toFixed(3);
+
+  document.getElementById('gammaStat').textContent = gamma.toFixed(3);
+  document.getElementById('etaStat').textContent = eta.toFixed(3);
+  document.getElementById('cStat').textContent = C.toFixed(3);
+
+  const alignPct = (gPct).toFixed(1);
+  const resiPct = (ePct).toFixed(1);
+  document.getElementById('alignText').innerHTML =
+    'Agent is <strong>'+alignPct+'%</strong> aligned with guide.<br>' +
+    '<strong>'+resiPct+'%</strong> of capacity is residual entropy (η).<br>' +
+    'γ/C ratio: <strong>'+(gamma/C).toFixed(3)+'</strong>';
+}
+
+gammaSlider.addEventListener('input', updateConservation);
+cSlider.addEventListener('input', updateConservation);
+
+// ============ PANEL 3: POLYGLOT BENCHMARK ============
+const langData = [
+  {name:'Rust',        val:9.2e9,  paradigm:'systems',   color:'#ff3366', note:'Safe systems language. Zero-cost abstractions.'},
+  {name:'Julia',       val:4.8e9,  paradigm:'scientific', color:'#00aaff', note:'JIT-compiled scientific computing.'},
+  {name:'C',           val:3.2e9,  paradigm:'systems',   color:'#ff3366', note:'Hand-tuned C with -O3.'},
+  {name:'C (LTO)',     val:3.0e9,  paradigm:'systems',   color:'#ff3366', note:'Link-time optimization variant.'},
+  {name:'Julia (rand)',val:2.5e9,  paradigm:'scientific', color:'#00aaff', note:'Random number generation path.'},
+  {name:'Julia (alloc)',val:1.1e9, paradigm:'scientific', color:'#00aaff', note:'Allocator-optimized variant.'},
+  {name:'Fortran',     val:1.0e8,  paradigm:'scientific', color:'#00aaff', note:'Classical HPC language.'},
+  {name:'Octave',      val:9.77e7, paradigm:'scientific', color:'#00aaff', note:'MATLAB-compatible. Interpreted.'},
+  {name:'D',           val:5.0e7,  paradigm:'systems',   color:'#ff3366', note:'Systems language with GC option.'},
+  {name:'Elixir',      val:2.0e7,  paradigm:'functional', color:'#00ff88', note:'BEAM VM. Actor model concurrency.'},
+  {name:'R',           val:3.25e7, paradigm:'scientific', color:'#00aaff', note:'Statistical computing. Vectorized.'},
+  {name:'COBOL',       val:5.0e6,  paradigm:'legacy',    color:'#ffaa00', note:'Running production mainframes since 1959.'},
+];
+
+function formatVal(v){
+  if(v >= 1e9) return (v/1e9).toFixed(1)+'B';
+  if(v >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if(v >= 1e3) return (v/1e3).toFixed(1)+'K';
+  return v.toString();
+}
+
+function buildBars(){
+  const container = document.getElementById('bars');
+  const maxLog = Math.log10(9.2e9);
+  const minLog = Math.log10(5e6);
+
+  // Sort descending
+  const sorted = [...langData].sort((a,b) => b.val - a.val);
+
+  for(const lang of sorted){
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+
+    const label = document.createElement('div');
+    label.className = 'bar-label';
+    label.textContent = lang.name;
+
+    const track = document.createElement('div');
+    track.className = 'bar-track';
+    track.dataset.name = lang.name;
+
+    const fill = document.createElement('div');
+    fill.className = 'bar-fill';
+    const logVal = Math.log10(lang.val);
+    const pct = ((logVal - minLog) / (maxLog - minLog)) * 100;
+    fill.style.width = pct + '%';
+    fill.style.background = lang.color;
+
+    const valLabel = document.createElement('div');
+    valLabel.className = 'bar-val';
+    valLabel.textContent = formatVal(lang.val);
+    fill.appendChild(valLabel);
+
+    track.appendChild(fill);
+    row.appendChild(label);
+    row.appendChild(track);
+    container.appendChild(row);
+
+    // Tooltip
+    track.addEventListener('mousemove', e => {
+      const tt = document.getElementById('tooltip');
+      tt.innerHTML = '<strong>'+lang.name+'</strong><br>' +
+        '<span class="tk">Throughput:</span> <span class="tv">'+formatVal(lang.val)+' sig/s</span><br>' +
+        '<span class="tk">Paradigm:</span> <span class="tv">'+lang.paradigm+'</span><br>' +
+        '<span class="tk">vs Rust:</span> <span class="tv">'+(lang.val/9.2e9*100).toFixed(3)+'%</span><br>' +
+        '<span class="tk" style="font-style:italic">'+lang.note+'</span>';
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX + 14) + 'px';
+      tt.style.top = (e.clientY - 10) + 'px';
+    });
+    track.addEventListener('mouseleave', () => {
+      document.getElementById('tooltip').style.display = 'none';
+    });
+  }
+}
+
+// ============ CLOCK ============
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString('en-US',{hour12:false}) + ' UTC' + (d.getTimezoneOffset()>0?'-':'+') + Math.abs(d.getTimezoneOffset()/60);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============ INIT ============
+window.addEventListener('load', () => {
+  resizeCanvas();
+  initAgents(100);
+  updateConservation();
+  buildBars();
+  requestAnimationFrame(animate);
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+</script>
+</body>
+</html>
