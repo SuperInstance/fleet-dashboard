@@ -51,6 +51,8 @@
   button:hover{opacity:.9}
   button:disabled{opacity:.5;cursor:not-allowed}
   button.secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+  button.success{background:var(--green);color:var(--bg)}
+  button.danger{background:var(--red);color:var(--text)}
   .ternary-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin:.5rem 0}
   .ternary-cell{aspect-ratio:1;border-radius:2px;transition:background .3s}
   .cell-plus{background:var(--green)}
@@ -73,10 +75,6 @@
   .pulse-repo{color:var(--blue)}
   .pulse-msg{color:var(--text)}
   .pulse-time{color:var(--text2);font-size:.75rem;margin-left:auto;white-space:nowrap}
-  .bottle-anim{display:flex;align-items:center;gap:.75rem;padding:.5rem;font-size:.85rem}
-  .bottle-anim .bottle-icon{display:inline-block;width:14px;height:18px;background:var(--blue);border-radius:3px 3px 6px 6px;animation:float 1.5s ease-in-out infinite;position:relative}
-  .bottle-anim .bottle-icon::after{content:'';position:absolute;top:-4px;left:2px;width:10px;height:4px;background:var(--blue);border-radius:2px 2px 0 0}
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
   .crate-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
   .crate-badge.rust{background:rgba(126,231,135,0.15);color:var(--green)}
   .crate-badge.ts{background:rgba(88,166,255,0.15);color:var(--blue)}
@@ -90,6 +88,14 @@
   .stat-item{flex:1;text-align:center}
   .stat-item .value{font-size:1.75rem;font-weight:700}
   .stat-item .label{font-size:.7rem;color:var(--text2);text-transform:uppercase}
+  .datasource-toggle{display:flex;gap:0;margin-left:1rem;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+  .datasource-toggle button{background:var(--bg3);color:var(--text2);border:none;padding:0.3rem 0.75rem;font-size:0.75rem;border-radius:0;}
+  .datasource-toggle button.active{background:var(--blue);color:var(--bg);font-weight:700}
+  .live-badge{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;animation:blink 1s infinite}
+  .live-badge.active{background:var(--green)}
+  .live-badge.inactive{background:var(--text2);animation:none}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  .ws-indicator{font-size:0.75rem;color:var(--text2);display:flex;align-items:center;gap:4px}
 </style>
 </head>
 <body>
@@ -98,9 +104,14 @@
 <header>
   <div>
     <h1>🦞 <span class="accent">SuperInstance</span> Fleet</h1>
-    <div class="tagline">The system that builds itself. <span class="glow-text" style="color:var(--green);font-size:.75rem">● LIVE</span></div>
+    <div class="tagline">The system that builds itself. <span class="glow-text" id="live-indicator" style="color:var(--green);font-size:.75rem">● SIMULATED</span></div>
   </div>
   <div class="flex">
+    <div class="datasource-toggle">
+      <button id="btn-sim" class="active" onclick="setDataSource('sim')">Simulated</button>
+      <button id="btn-live" onclick="setDataSource('live')">Live API</button>
+    </div>
+    <div class="ws-indicator"><span class="live-badge inactive" id="ws-dot"></span><span id="ws-status">Disconnected</span></div>
     <span class="badge badge-green">γ + η = C</span>
     <span class="badge badge-purple">{-1, 0, +1}</span>
     <a href="https://github.com/SuperInstance" target="_blank" class="badge badge-blue">GitHub ↗</a>
@@ -110,9 +121,9 @@
 <div class="grid">
   <div class="card">
     <h3>📦 Fleet</h3>
-    <div class="stat"><span id="stat-repos">49</span></div>
+    <div class="stat"><span id="stat-repos">—</span></div>
     <div class="stat-label">public repos</div>
-    <p><span id="stat-languages">9</span> languages · <span id="stat-stars">14</span> stars</p>
+    <p><span id="stat-languages">—</span> languages · <span id="stat-stars">—</span> stars</p>
   </div>
   <div class="card">
     <h3>🔬 Conservation Law</h3>
@@ -139,9 +150,9 @@
       <span class="crate-badge zig">Zig</span>
     </div>
     <div class="stat-row">
-      <div class="stat-item"><div class="value" style="color:var(--green)">83</div><div class="label">tests (CTC)</div></div>
-      <div class="stat-item"><div class="value" style="color:var(--blue)">0</div><div class="label">deps (flux)</div></div>
-      <div class="stat-item"><div class="value" style="color:var(--orange)">561M</div><div class="label">sig/s (fleet-sim)</div></div>
+      <div class="stat-item"><div class="value" id="stat-tests" style="color:var(--green)">83</div><div class="label">tests (CTC)</div></div>
+      <div class="stat-item"><div class="value" id="stat-deps" style="color:var(--blue)">0</div><div class="label">deps (flux)</div></div>
+      <div class="stat-item"><div class="value" id="stat-sigs" style="color:var(--orange)">561M</div><div class="label">sig/s (fleet-sim)</div></div>
     </div>
   </div>
 </div>
@@ -205,6 +216,7 @@
       <div class="flex mt-1">
         <button onclick="randomizeTernary()">🔀 Randomize</button>
         <button class="secondary" onclick="ternaryGP()">📊 Gaussian</button>
+        <button class="secondary" onclick="fetchTernaryLive()" title="Fetch from API">🌐 Fetch</button>
       </div>
     </div>
     <div>
@@ -247,198 +259,6 @@
 
 </div>
 
-<script>
-// ─── Data ─────────────────────────────────────────────────────────
-const REPOS = [
-  {name:'flux-core',lang:'Rust',desc:'Zero-dep FLUX bytecode runtime VM + A2A',stars:2},
-  {name:'flux-realm',lang:'Zig',desc:'A2A orchestration with SAEP veto topology',stars:1},
-  {name:'ternary-tnn',lang:'Rust',desc:'Ternary neural nets: {-1,0,+1}, LUT matmul',stars:1},
-  {name:'constraint-theory-core',lang:'Rust',desc:'Constraint geometry, 83 tests, zero deps',stars:0},
-  {name:'fleet-edge-worker',lang:'TypeScript',desc:'CF Workers edge runtime + PID governor',stars:0},
-  {name:'ecosystem-graph',lang:'TypeScript',desc:'Crate dependency analyzer + D1',stars:0},
-  {name:'baton-system',lang:'Shell',desc:'I2I coordination — tripartite baton protocol',stars:0},
-  {name:'fleet-sim-rs',lang:'Rust',desc:'561M sig/s fleet cancellation simulator',stars:0},
-  {name:'native-conservation-core',lang:'C/CUDA',desc:'C + CUDA ternary ALU, ring buffers',stars:0},
-  {name:'conservation-languages',lang:'Julia',desc:'Conservation law in 9 languages',stars:0},
-  {name:'headspace',lang:'Python',desc:'Context compression + swarm + baton hub',stars:0},
-  {name:'gc-pid-bridge',lang:'Rust',desc:'PID bridge: GC ↔ ternary-pid',stars:0},
-  {name:'polln',lang:'TypeScript',desc:'Fleet visualized in spreadsheets',stars:1},
-  {name:'fleet-health-monitor',lang:'Python',desc:'Daemonized health + necrosis detection',stars:2},
-  {name:'fleet-auto-ingest',lang:'TypeScript',desc:'GitHub → Vectorize every 6h',stars:0},
-  {name:'the-rotation',lang:'Rust',desc:'ARM NEON engine, 5 crates, 42 tests',stars:0},
-  {name:'ternary-search-rs',lang:'Rust',desc:'Ternary vector search: axum+rayon+SIMD',stars:0},
-  {name:'harness-experiments',lang:'Python',desc:'Agent productivity experiments',stars:0},
-  {name:'cocapn',lang:'Python',desc:'Repo-first agent: muscle memory in git',stars:0},
-];
-const AGENTS = [
-  {n:'oracle2',r:'Orchestrator',s:'online',d:'Co-captain. Memory, GC, baton.'},
-  {n:'forgemaster',r:'Build',s:'online',d:'Compiles, tests, releases fleet.'},
-  {n:'flux-core-vm',r:'Runtime',s:'online',d:'FLUX bytecode VM + assembler.'},
-  {n:'fleet-edge',r:'Edge Router',s:'online',d:'Cloudflare: bottle dispatch.'},
-  {n:'constraint-core',r:'Math',s:'online',d:'Eisenstein lattices, rigidity.'},
-  {n:'ternary-tnn',r:'ML',s:'online',d:'1.58-bit neural inference.'},
-  {n:'eco-graph',r:'Analysis',s:'idle',d:'Dependency graph + D1.'},
-  {n:'fleet-health',r:'Monitoring',s:'online',d:'Necrosis detection.'},
-  {n:'lever-runner',r:'CI',s:'idle',d:'HTTP API on :8780.'},
-  {n:'headspace',r:'Integration',s:'online',d:'HUB: compression + swarm.'},
-];
-const PULSE = [
-  {r:'conservation-languages',m:'Verified Julia zero-alloc: 8.1B sig/s',t:'2h ago'},
-  {r:'fleet-sim-rs',m:'561M sig/s concurrent cancellation simulator',t:'3h ago'},
-  {r:'ternary-search-rs',m:'Ternary vector search: axum+rayon+SIMD',t:'3h ago'},
-  {r:'native-conservation-core',m:'ctypes bindings + ternary ALU + 97KB arch doc',t:'3h ago'},
-  {r:'the-rotation',m:'v0.3: Rust + Zig NEON ARM kernel',t:'4h ago'},
-  {r:'baton-system',m:'gc-intelligence: PID calibration sync',t:'5m ago'},
-  {r:'fleet-edge-worker',m:'PID Fleet Governor: 822-line, 3 routes',t:'5h ago'},
-  {r:'headspace',m:'v0.2.2: agent patterns + SYSTEM.md',t:'6h ago'},
-  {r:'flux-core',m:'README upgraded to textbook quality',t:'12h ago'},
-  {r:'flux-realm',m:'ctypes FFI wrapper for Rotation Zig kernel',t:'14h ago'},
-  {r:'ternary-tnn',m:'v0.1.1: SIMD + Zig NEON matmul',t:'15h ago'},
-  {r:'ecosystem-graph',m:'Concept layer: concepts, cross-pollination, frontier',t:'1d ago'},
-  {r:'cocapn',m:'sync fleet GC config',t:'1d ago'},
-  {r:'gc-pid-bridge',m:'First commit: Rust PID wrapper for GC system',t:'1d ago'},
-];
-
-// ─── Agent List ──────────────────────────────────────────────────
-document.getElementById('agent-list').innerHTML = AGENTS.map(a =>
-  `<li><span class="status-dot ${a.s}"></span><strong>${a.n}</strong><span style="color:var(--text2);font-size:.75rem">${a.r}</span><span style="color:var(--text2);font-size:.75rem;margin-left:auto">${a.d}</span></li>`
-).join('');
-
-// ─── Terminal ────────────────────────────────────────────────────
-function log(msg, cls='output', pre='$') {
-  const t = document.getElementById('bottle-term');
-  const d = document.createElement('div'); d.className='line';
-  d.innerHTML = `<span class="prompt">${pre}</span> <span class="${cls}">${msg}</span>`;
-  t.appendChild(d); t.scrollTop = t.scrollHeight;
-}
-function clearLog() {
-  document.getElementById('bottle-term').innerHTML = '';
-  log('Fleet Terminal ready.','info'); log('Waiting...');
-}
-
-// ─── Send Bottle ─────────────────────────────────────────────────
-function sendBottle() {
-  const a = document.getElementById('bottle-action').value;
-  const p = document.getElementById('bottle-payload').value;
-  const id = 'b-'+Date.now().toString(36);
-  log(`Sending ${a} [${id}]...`,'highlight');
-  setTimeout(()=>log('fleet-edge: routing...'),400);
-  setTimeout(()=>{
-    const R={
-      fleet_status:`{"agents":10,"online":8,"idle":2,"bottles":${Math.floor(Math.random()*500+100)}}`,
-      chord_request:`{"resolved":true,"chord":"γ+η=C","conf":${(Math.random()*0.3+0.7).toFixed(2)}}`,
-      gc_tick:`{"freed":"${Math.floor(Math.random()*500+50)}MB","pid":${(Math.random()*4+1).toFixed(1)}x}`,
-      baton_sync:`{"synced":true,"vessel":"/tmp/i2i-vessel/","pending":${Math.floor(Math.random()*5)}}`,
-      ternary_infer:`{"ops":"64 ternary MACs","fp_mult":0}`,
-      echo:`{"pong":true,"agent":"${['oracle2','forgemaster','fleet-edge'][Math.floor(Math.random()*3)]}","latency":"${Math.floor(Math.random()*80+10)}ms"}`,
-    };
-    log(`→ ${R[a]||'{"ok":true}'}`,'prompt','');
-    log(`${id}: delivered ✓`,'info');
-  },1200);
-}
-
-// ─── Graph ───────────────────────────────────────────────────────
-function drawGraph() {
-  const c = document.getElementById('graph-canvas');
-  const ct = document.getElementById('graph-container');
-  const r = ct.getBoundingClientRect();
-  const d = window.devicePixelRatio||1;
-  c.width = r.width*d; c.height = r.height*d;
-  c.style.width = r.width+'px'; c.style.height = r.height+'px';
-  const ctx = c.getContext('2d');
-  ctx.scale(d,d);
-  const W = r.width, H = r.height;
-  const CM = {Rust:'#7ee787',TypeScript:'#58a6ff',Python:'#f0883e','C/CUDA':'#bc8cff',Zig:'#39d2c0',Julia:'#a6e22e',Shell:'#8b949e'};
-  const N = REPOS.map((r,i)=>({
-    x:Math.random()*W*0.7+W*0.15,y:Math.random()*H*0.7+H*0.15,
-    vx:0,vy:0,
-    r:Math.max(4,Math.min(18,6+r.stars*3)),
-    c:CM[r.lang]||'#8b949e',l:r.name
-  }));
-
-  for(let iter=0;iter<120;iter++){
-    for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){
-      const dx=N[j].x-N[i].x,dy=N[j].y-N[i].y;
-      const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy));
-      const f=5000/(dist*dist);
-      N[i].vx-=(dx/dist)*f;N[i].vy-=(dy/dist)*f;
-      N[j].vx+=(dx/dist)*f;N[j].vy+=(dy/dist)*f;
-    }
-    for(const n of N){
-      n.vx+=(W/2-n.x)*0.01;n.vy+=(H/2-n.y)*0.01;
-      n.vx*=0.85;n.vy*=0.85;
-      n.x+=n.vx;n.y+=n.vy;
-      n.x=Math.max(10,Math.min(W-10,n.x));
-      n.y=Math.max(10,Math.min(H-10,n.y));
-    }
-  }
-
-  ctx.clearRect(0,0,W,H);
-  // edges
-  for(let i=0;i<N.length;i++)for(let j=0;j<2;j++){
-    const t=Math.floor(Math.random()*N.length);
-    if(t===i)continue;
-    ctx.beginPath();ctx.moveTo(N[i].x,N[i].y);ctx.lineTo(N[t].x,N[t].y);
-    ctx.strokeStyle='rgba(48,54,61,0.25)';ctx.lineWidth=0.5;ctx.stroke();
-  }
-  // nodes
-  for(const n of N){
-    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
-    ctx.fillStyle=n.c;ctx.globalAlpha=0.85;ctx.fill();ctx.globalAlpha=1;
-    ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();
-    ctx.fillStyle='#c9d1d9';ctx.font='9px system-ui,sans-serif';ctx.textAlign='center';
-    ctx.fillText(n.l,n.x,n.y+n.r+12);
-  }
-}
-drawGraph();
-
-// ─── Ternary ─────────────────────────────────────────────────────
-const TERNARY = new Uint8Array(64);
-function renderTernary() {
-  const g = document.getElementById('ternary-grid');
-  g.innerHTML = '';
-  const B = ['cell-minus','cell-zero','cell-plus'];
-  for(let i=0;i<64;i++){
-    const d = document.createElement('div'); d.className='ternary-cell '+B[TERNARY[i]+1];
-    g.appendChild(d);
-  }
-  // forward pass
-  const x = [1,-1,0,1,-1,0,1,-1];
-  let r = 0;
-  for(let i=0;i<8;i++) for(let j=0;j<8;j++) r += TERNARY[i*8+j] * x[j];
-  document.getElementById('ternary-result').textContent = r;
-  const plus = TERNARY.filter(v=>v===1).length;
-  const minus = TERNARY.filter(v=>v===-1).length;
-  const zero = 64-plus-minus;
-  document.getElementById('ternary-term').innerHTML =
-    `<div class="line"><span class="prompt">$</span> <span class="output">x = [+1,-1,0,+1,-1,0,+1,-1]</span></div>`+
-    `<div class="line"><span class="prompt">$</span> <span class="output">W·x = ${r}</span></div>`+
-    `<div class="line"><span class="prompt">$</span> <span class="info">+1:${plus}  0:${zero}  -1:${minus}  0 FP mult</span></div>`;
-}
-function randomizeTernary() {
-  for(let i=0;i<64;i++) TERNARY[i] = Math.random()<0.5?1:Math.random()<0.5?0:-1;
-  renderTernary();
-}
-function ternaryGP() {
-  // gaussian truncated to ternary
-  for(let i=0;i<64;i++){
-    const v = Math.random()+Math.random()+Math.random()-1.5; // ~N(0,1)
-    TERNARY[i] = v>0.5?1:v<-0.5?-1:0;
-  }
-  renderTernary();
-}
-randomizeTernary();
-
-// ─── Pulse ───────────────────────────────────────────────────────
-const pt = document.getElementById('pulse-term'); pt.innerHTML = '';
-PULSE.forEach(p=>{
-  const d = document.createElement('div'); d.className='line';
-  d.innerHTML = `<span class="prompt">$</span> <span class="pulse-repo">${p.r}</span> <span class="output">${p.m}</span> <span class="pulse-time">${p.t}</span>`;
-  pt.appendChild(d);
-});
-
-console.log('SuperInstance Fleet Dashboard loaded.');
-console.log(`${REPOS.length} repos, ${AGENTS.length} agents, ${PULSE.length} pulse entries`);
-</script>
+<script src="/assets/dashboard.js"></script>
 </body>
 </html>

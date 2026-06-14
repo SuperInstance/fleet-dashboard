@@ -1,0 +1,17 @@
+{
+  "name": "fleet-dashboard-backend",
+  "version": "1.0.0",
+  "description": "Live backend server for the SuperInstance Fleet Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "undici": "^7.0.0",
+    "ws": "^8.16.0"
+  }
+}
