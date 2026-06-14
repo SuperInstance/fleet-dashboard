@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperInstance Fleet — Killer App</title>
+<style>
+  :root { --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --text:#c9d1d9; --text2:#8b949e; --blue:#58a6ff; --green:#7ee787; --orange:#f0883e; --red:#f85149; --purple:#bc8cff; --cyan:#39d2c0; --border:#30363d; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+  .container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
+  header{border-bottom:1px solid var(--border);padding:1.5rem 0;margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+  header h1{font-size:1.5rem;color:var(--blue);display:flex;align-items:center;gap:0.5rem}
+  header h1 .accent{color:var(--green)}
+  header .tagline{color:var(--text2);font-size:0.9rem}
+  .badge{display:inline-block;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:600}
+  .badge-green{background:rgba(126,231,135,0.15);color:var(--green);border:1px solid rgba(126,231,135,0.3)}
+  .badge-blue{background:rgba(88,166,255,0.15);color:var(--blue);border:1px solid rgba(88,166,255,0.3)}
+  .badge-orange{background:rgba(240,136,62,0.15);color:var(--orange);border:1px solid rgba(240,136,62,0.3)}
+  .badge-purple{background:rgba(188,140,255,0.15);color:var(--purple);border:1px solid rgba(188,140,255,0.3)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.25rem;transition:border-color .2s}
+  .card:hover{border-color:var(--blue)}
+  .card h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+  .card .stat{font-size:2rem;font-weight:700;margin-bottom:.25rem}
+  .card .stat-label{font-size:.8rem;color:var(--text2)}
+  .card p{color:var(--text2);font-size:.9rem;margin-bottom:.5rem}
+  .conservation-meter{display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg3);border-radius:6px;margin:.75rem 0}
+  .conservation-meter .bar-track{flex:1;height:24px;background:var(--bg);border-radius:12px;overflow:hidden;display:flex}
+  .conservation-meter .bar-gamma{background:var(--orange);height:100%;transition:width 1s ease}
+  .conservation-meter .bar-eta{background:var(--green);height:100%;transition:width 1s ease}
+  .conservation-meter .labels{display:flex;gap:.5rem;font-size:.75rem;min-width:120px}
+  .conservation-eq{font-family:Georgia,serif;font-size:1.25rem;text-align:center;padding:.5rem;color:var(--cyan)}
+  .terminal{background:#0a0e14;border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:'Cascadia Code','Fira Code','JetBrains Mono',monospace;font-size:.85rem;line-height:1.5;min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:1rem}
+  .terminal .line{white-space:pre-wrap;word-break:break-word}
+  .terminal .prompt{color:var(--green)}
+  .terminal .output{color:var(--text2)}
+  .terminal .info{color:var(--blue)}
+  .terminal .warn{color:var(--orange)}
+  .terminal .error{color:var(--red)}
+  .terminal .highlight{color:var(--purple)}
+  .demo-section{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin-bottom:1.5rem}
+  .demo-section h2{font-size:1.1rem;margin-bottom:1rem;color:var(--blue)}
+  .demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:768px){.grid{grid-template-columns:1fr}.demo-grid{grid-template-columns:1fr}}
+  .graph-container{width:100%;height:400px;background:#0a0e14;border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative}
+  .graph-container canvas{width:100%;height:100%}
+  input,textarea,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:6px;font-size:.9rem;width:100%;margin-bottom:.5rem}
+  input:focus,textarea:focus{outline:none;border-color:var(--blue)}
+  button{background:var(--blue);color:var(--bg);border:none;padding:.5rem 1rem;border-radius:6px;font-weight:600;font-size:.9rem;cursor:pointer;transition:opacity .2s}
+  button:hover{opacity:.9}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+  .ternary-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin:.5rem 0}
+  .ternary-cell{aspect-ratio:1;border-radius:2px;transition:background .3s}
+  .cell-plus{background:var(--green)}
+  .cell-zero{background:var(--bg3)}
+  .cell-minus{background:var(--orange)}
+  .fleet-list{list-style:none}
+  .fleet-list li{display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+  .fleet-list li:last-child{border-bottom:none}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .status-dot.online{background:var(--green)}
+  .status-dot.idle{background:var(--orange)}
+  .status-dot.offline{background:var(--red)}
+  .flex{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .mt-1{margin-top:.5rem}
+  .mb-1{margin-bottom:.5rem}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .pulse-item{padding:.3rem 0;border-bottom:1px solid var(--bg3);font-size:.8rem;display:flex;gap:.5rem;align-items:baseline}
+  .pulse-item:last-child{border-bottom:none}
+  .pulse-repo{color:var(--blue)}
+  .pulse-msg{color:var(--text)}
+  .pulse-time{color:var(--text2);font-size:.75rem;margin-left:auto;white-space:nowrap}
+  .bottle-anim{display:flex;align-items:center;gap:.75rem;padding:.5rem;font-size:.85rem}
+  .bottle-anim .bottle-icon{display:inline-block;width:14px;height:18px;background:var(--blue);border-radius:3px 3px 6px 6px;animation:float 1.5s ease-in-out infinite;position:relative}
+  .bottle-anim .bottle-icon::after{content:'';position:absolute;top:-4px;left:2px;width:10px;height:4px;background:var(--blue);border-radius:2px 2px 0 0}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .crate-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+  .crate-badge.rust{background:rgba(126,231,135,0.15);color:var(--green)}
+  .crate-badge.ts{background:rgba(88,166,255,0.15);color:var(--blue)}
+  .crate-badge.py{background:rgba(240,136,62,0.15);color:var(--orange)}
+  .crate-badge.c{background:rgba(188,140,255,0.15);color:var(--purple)}
+  .crate-badge.zig{background:rgba(57,210,192,0.15);color:var(--cyan)}
+  .crate-badge.sh{background:rgba(139,148,158,0.15);color:var(--text2)}
+  .glow-text{animation:pulse-glow 2s ease-in-out infinite}
+  @keyframes pulse-glow{0%,100%{text-shadow:0 0 4px rgba(88,166,255,.3)}50%{text-shadow:0 0 12px rgba(88,166,255,.6)}}
+  .stat-row{display:flex;gap:1rem;margin:.5rem 0}
+  .stat-item{flex:1;text-align:center}
+  .stat-item .value{font-size:1.75rem;font-weight:700}
+  .stat-item .label{font-size:.7rem;color:var(--text2);text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div>
+    <h1>🦞 <span class="accent">SuperInstance</span> Fleet</h1>
+    <div class="tagline">The system that builds itself. <span class="glow-text" style="color:var(--green);font-size:.75rem">● LIVE</span></div>
+  </div>
+  <div class="flex">
+    <span class="badge badge-green">γ + η = C</span>
+    <span class="badge badge-purple">{-1, 0, +1}</span>
+    <a href="https://github.com/SuperInstance" target="_blank" class="badge badge-blue">GitHub ↗</a>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h3>📦 Fleet</h3>
+    <div class="stat"><span id="stat-repos">49</span></div>
+    <div class="stat-label">public repos</div>
+    <p><span id="stat-languages">9</span> languages · <span id="stat-stars">14</span> stars</p>
+  </div>
+  <div class="card">
+    <h3>🔬 Conservation Law</h3>
+    <div class="conservation-eq">γ + η = C</div>
+    <div class="conservation-meter">
+      <div class="labels">
+        <span class="label-gamma">γ (cost) <span id="gamma-pct">42</span>%</span>
+        <span class="label-eta">η (value) <span id="eta-pct">58</span>%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-gamma" id="bar-gamma" style="width:42%"></div>
+        <div class="bar-eta" id="bar-eta" style="width:58%"></div>
+      </div>
+    </div>
+    <p style="font-size:.8rem">Coupling cost vs ecosystem value — every edge is a decision.</p>
+  </div>
+  <div class="card">
+    <h3>🧠 Core Stack</h3>
+    <div class="flex" style="margin-bottom:.75rem">
+      <span class="crate-badge rust">Rust</span>
+      <span class="crate-badge ts">TypeScript</span>
+      <span class="crate-badge py">Python</span>
+      <span class="crate-badge c">C/CUDA</span>
+      <span class="crate-badge zig">Zig</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-item"><div class="value" style="color:var(--green)">83</div><div class="label">tests (CTC)</div></div>
+      <div class="stat-item"><div class="value" style="color:var(--blue)">0</div><div class="label">deps (flux)</div></div>
+      <div class="stat-item"><div class="value" style="color:var(--orange)">561M</div><div class="label">sig/s (fleet-sim)</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Graph -->
+<div class="demo-section">
+  <h2>🌐 Fleet Topology</h2>
+  <p style="color:var(--text2);margin-bottom:.75rem">
+    Force-directed graph of fleet crates. Node size = stars (popularity). Color = language.
+  </p>
+  <div class="graph-container" id="graph-container">
+    <canvas id="graph-canvas"></canvas>
+  </div>
+</div>
+
+<!-- I2I Bottle -->
+<div class="demo-section">
+  <h2>📨 I2I Bottle Dispatch</h2>
+  <p style="color:var(--text2);margin-bottom:.75rem">
+    Every action is a <strong>bottle</strong> — atomic message routed through the fleet A2A mesh.
+  </p>
+  <div class="demo-grid">
+    <div>
+      <label style="color:var(--text2);font-size:.8rem">Action</label>
+      <select id="bottle-action">
+        <option value="fleet_status">fleet_status</option>
+        <option value="chord_request">chord_request</option>
+        <option value="gc_tick">gc_tick</option>
+        <option value="baton_sync">baton_sync</option>
+        <option value="ternary_infer">ternary_infer</option>
+        <option value="echo" selected>echo</option>
+      </select>
+      <label style="color:var(--text2);font-size:.8rem">Payload</label>
+      <textarea id="bottle-payload" rows="2">{"target":"oracle2","query":"fleet status"}</textarea>
+      <div class="flex mt-1">
+        <button onclick="sendBottle()">🚀 Send</button>
+        <button class="secondary" onclick="clearLog()">Clear</button>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" id="bottle-term">
+        <div class="line"><span class="prompt">$</span> <span class="info">Fleet Terminal ready.</span></div>
+        <div class="line"><span class="prompt">$</span> <span class="output">Waiting...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ternary -->
+<div class="demo-section">
+  <h2>🧮 Ternary NN — {-1, 0, +1}</h2>
+  <p style="color:var(--text2);margin-bottom:.75rem">
+    <span style="color:var(--green)">■ +1</span>
+    <span style="color:var(--text2)">■ 0</span>
+    <span style="color:var(--orange)">■ -1</span>.
+    No FP multiplications — only sign flips. MAC = 1 AND gate.
+  </p>
+  <div class="demo-grid">
+    <div>
+      <div class="ternary-grid" id="ternary-grid"></div>
+      <div class="flex mt-1">
+        <button onclick="randomizeTernary()">🔀 Randomize</button>
+        <button class="secondary" onclick="ternaryGP()">📊 Gaussian</button>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" id="ternary-term" style="min-height:140px">
+        <div class="line"><span class="prompt">$</span> <span class="output">x = [+1,-1,0,+1,-1,0,+1,-1]</span></div>
+        <div class="line"><span class="prompt">$</span> <span class="output">W·x = <span id="ternary-result">—</span></span></div>
+        <div class="line"><span class="prompt">$</span> <span class="info">0 FP multiplications.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Agents -->
+<div class="demo-section">
+  <h2>🤖 Fleet Agents</h2>
+  <p style="color:var(--text2);margin-bottom:.75rem">10 nodes in the A2A mesh.</p>
+  <div class="demo-grid">
+    <div><ul class="fleet-list" id="agent-list"></ul></div>
+    <div>
+      <div class="terminal" id="agent-term" style="min-height:200px">
+        <div class="line"><span class="prompt">$</span><span class="info"> Agent mesh active</span></div>
+        <div class="line"><span class="prompt">$</span><span class="output"> A2A | I2I | Git-Agent</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pulse -->
+<div class="demo-section">
+  <h2>⏱️ Fleet Pulse</h2>
+  <div class="terminal" id="pulse-term" style="max-height:350px;min-height:200px">
+    <div class="line"><span class="prompt">$</span> <span class="output">Loading...</span></div>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:1.5rem 0;margin-top:2rem;text-align:center;color:var(--text2);font-size:.8rem">
+  <p><strong>γ+η=C</strong> · <strong>{-1,0,+1}</strong> · <strong>A2A+I2I+Git-Agent</strong></p>
+  <p style="margin-top:.5rem"><a href="https://github.com/SuperInstance/SuperInstance">SuperInstance</a> — The system that builds itself.</p>
+</footer>
+
+</div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────
+const REPOS = [
+  {name:'flux-core',lang:'Rust',desc:'Zero-dep FLUX bytecode runtime VM + A2A',stars:2},
+  {name:'flux-realm',lang:'Zig',desc:'A2A orchestration with SAEP veto topology',stars:1},
+  {name:'ternary-tnn',lang:'Rust',desc:'Ternary neural nets: {-1,0,+1}, LUT matmul',stars:1},
+  {name:'constraint-theory-core',lang:'Rust',desc:'Constraint geometry, 83 tests, zero deps',stars:0},
+  {name:'fleet-edge-worker',lang:'TypeScript',desc:'CF Workers edge runtime + PID governor',stars:0},
+  {name:'ecosystem-graph',lang:'TypeScript',desc:'Crate dependency analyzer + D1',stars:0},
+  {name:'baton-system',lang:'Shell',desc:'I2I coordination — tripartite baton protocol',stars:0},
+  {name:'fleet-sim-rs',lang:'Rust',desc:'561M sig/s fleet cancellation simulator',stars:0},
+  {name:'native-conservation-core',lang:'C/CUDA',desc:'C + CUDA ternary ALU, ring buffers',stars:0},
+  {name:'conservation-languages',lang:'Julia',desc:'Conservation law in 9 languages',stars:0},
+  {name:'headspace',lang:'Python',desc:'Context compression + swarm + baton hub',stars:0},
+  {name:'gc-pid-bridge',lang:'Rust',desc:'PID bridge: GC ↔ ternary-pid',stars:0},
+  {name:'polln',lang:'TypeScript',desc:'Fleet visualized in spreadsheets',stars:1},
+  {name:'fleet-health-monitor',lang:'Python',desc:'Daemonized health + necrosis detection',stars:2},
+  {name:'fleet-auto-ingest',lang:'TypeScript',desc:'GitHub → Vectorize every 6h',stars:0},
+  {name:'the-rotation',lang:'Rust',desc:'ARM NEON engine, 5 crates, 42 tests',stars:0},
+  {name:'ternary-search-rs',lang:'Rust',desc:'Ternary vector search: axum+rayon+SIMD',stars:0},
+  {name:'harness-experiments',lang:'Python',desc:'Agent productivity experiments',stars:0},
+  {name:'cocapn',lang:'Python',desc:'Repo-first agent: muscle memory in git',stars:0},
+];
+const AGENTS = [
+  {n:'oracle2',r:'Orchestrator',s:'online',d:'Co-captain. Memory, GC, baton.'},
+  {n:'forgemaster',r:'Build',s:'online',d:'Compiles, tests, releases fleet.'},
+  {n:'flux-core-vm',r:'Runtime',s:'online',d:'FLUX bytecode VM + assembler.'},
+  {n:'fleet-edge',r:'Edge Router',s:'online',d:'Cloudflare: bottle dispatch.'},
+  {n:'constraint-core',r:'Math',s:'online',d:'Eisenstein lattices, rigidity.'},
+  {n:'ternary-tnn',r:'ML',s:'online',d:'1.58-bit neural inference.'},
+  {n:'eco-graph',r:'Analysis',s:'idle',d:'Dependency graph + D1.'},
+  {n:'fleet-health',r:'Monitoring',s:'online',d:'Necrosis detection.'},
+  {n:'lever-runner',r:'CI',s:'idle',d:'HTTP API on :8780.'},
+  {n:'headspace',r:'Integration',s:'online',d:'HUB: compression + swarm.'},
+];
+const PULSE = [
+  {r:'conservation-languages',m:'Verified Julia zero-alloc: 8.1B sig/s',t:'2h ago'},
+  {r:'fleet-sim-rs',m:'561M sig/s concurrent cancellation simulator',t:'3h ago'},
+  {r:'ternary-search-rs',m:'Ternary vector search: axum+rayon+SIMD',t:'3h ago'},
+  {r:'native-conservation-core',m:'ctypes bindings + ternary ALU + 97KB arch doc',t:'3h ago'},
+  {r:'the-rotation',m:'v0.3: Rust + Zig NEON ARM kernel',t:'4h ago'},
+  {r:'baton-system',m:'gc-intelligence: PID calibration sync',t:'5m ago'},
+  {r:'fleet-edge-worker',m:'PID Fleet Governor: 822-line, 3 routes',t:'5h ago'},
+  {r:'headspace',m:'v0.2.2: agent patterns + SYSTEM.md',t:'6h ago'},
+  {r:'flux-core',m:'README upgraded to textbook quality',t:'12h ago'},
+  {r:'flux-realm',m:'ctypes FFI wrapper for Rotation Zig kernel',t:'14h ago'},
+  {r:'ternary-tnn',m:'v0.1.1: SIMD + Zig NEON matmul',t:'15h ago'},
+  {r:'ecosystem-graph',m:'Concept layer: concepts, cross-pollination, frontier',t:'1d ago'},
+  {r:'cocapn',m:'sync fleet GC config',t:'1d ago'},
+  {r:'gc-pid-bridge',m:'First commit: Rust PID wrapper for GC system',t:'1d ago'},
+];
+
+// ─── Agent List ──────────────────────────────────────────────────
+document.getElementById('agent-list').innerHTML = AGENTS.map(a =>
+  `<li><span class="status-dot ${a.s}"></span><strong>${a.n}</strong><span style="color:var(--text2);font-size:.75rem">${a.r}</span><span style="color:var(--text2);font-size:.75rem;margin-left:auto">${a.d}</span></li>`
+).join('');
+
+// ─── Terminal ────────────────────────────────────────────────────
+function log(msg, cls='output', pre='$') {
+  const t = document.getElementById('bottle-term');
+  const d = document.createElement('div'); d.className='line';
+  d.innerHTML = `<span class="prompt">${pre}</span> <span class="${cls}">${msg}</span>`;
+  t.appendChild(d); t.scrollTop = t.scrollHeight;
+}
+function clearLog() {
+  document.getElementById('bottle-term').innerHTML = '';
+  log('Fleet Terminal ready.','info'); log('Waiting...');
+}
+
+// ─── Send Bottle ─────────────────────────────────────────────────
+function sendBottle() {
+  const a = document.getElementById('bottle-action').value;
+  const p = document.getElementById('bottle-payload').value;
+  const id = 'b-'+Date.now().toString(36);
+  log(`Sending ${a} [${id}]...`,'highlight');
+  setTimeout(()=>log('fleet-edge: routing...'),400);
+  setTimeout(()=>{
+    const R={
+      fleet_status:`{"agents":10,"online":8,"idle":2,"bottles":${Math.floor(Math.random()*500+100)}}`,
+      chord_request:`{"resolved":true,"chord":"γ+η=C","conf":${(Math.random()*0.3+0.7).toFixed(2)}}`,
+      gc_tick:`{"freed":"${Math.floor(Math.random()*500+50)}MB","pid":${(Math.random()*4+1).toFixed(1)}x}`,
+      baton_sync:`{"synced":true,"vessel":"/tmp/i2i-vessel/","pending":${Math.floor(Math.random()*5)}}`,
+      ternary_infer:`{"ops":"64 ternary MACs","fp_mult":0}`,
+      echo:`{"pong":true,"agent":"${['oracle2','forgemaster','fleet-edge'][Math.floor(Math.random()*3)]}","latency":"${Math.floor(Math.random()*80+10)}ms"}`,
+    };
+    log(`→ ${R[a]||'{"ok":true}'}`,'prompt','');
+    log(`${id}: delivered ✓`,'info');
+  },1200);
+}
+
+// ─── Graph ───────────────────────────────────────────────────────
+function drawGraph() {
+  const c = document.getElementById('graph-canvas');
+  const ct = document.getElementById('graph-container');
+  const r = ct.getBoundingClientRect();
+  const d = window.devicePixelRatio||1;
+  c.width = r.width*d; c.height = r.height*d;
+  c.style.width = r.width+'px'; c.style.height = r.height+'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(d,d);
+  const W = r.width, H = r.height;
+  const CM = {Rust:'#7ee787',TypeScript:'#58a6ff',Python:'#f0883e','C/CUDA':'#bc8cff',Zig:'#39d2c0',Julia:'#a6e22e',Shell:'#8b949e'};
+  const N = REPOS.map((r,i)=>({
+    x:Math.random()*W*0.7+W*0.15,y:Math.random()*H*0.7+H*0.15,
+    vx:0,vy:0,
+    r:Math.max(4,Math.min(18,6+r.stars*3)),
+    c:CM[r.lang]||'#8b949e',l:r.name
+  }));
+
+  for(let iter=0;iter<120;iter++){
+    for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){
+      const dx=N[j].x-N[i].x,dy=N[j].y-N[i].y;
+      const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+      const f=5000/(dist*dist);
+      N[i].vx-=(dx/dist)*f;N[i].vy-=(dy/dist)*f;
+      N[j].vx+=(dx/dist)*f;N[j].vy+=(dy/dist)*f;
+    }
+    for(const n of N){
+      n.vx+=(W/2-n.x)*0.01;n.vy+=(H/2-n.y)*0.01;
+      n.vx*=0.85;n.vy*=0.85;
+      n.x+=n.vx;n.y+=n.vy;
+      n.x=Math.max(10,Math.min(W-10,n.x));
+      n.y=Math.max(10,Math.min(H-10,n.y));
+    }
+  }
+
+  ctx.clearRect(0,0,W,H);
+  // edges
+  for(let i=0;i<N.length;i++)for(let j=0;j<2;j++){
+    const t=Math.floor(Math.random()*N.length);
+    if(t===i)continue;
+    ctx.beginPath();ctx.moveTo(N[i].x,N[i].y);ctx.lineTo(N[t].x,N[t].y);
+    ctx.strokeStyle='rgba(48,54,61,0.25)';ctx.lineWidth=0.5;ctx.stroke();
+  }
+  // nodes
+  for(const n of N){
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle=n.c;ctx.globalAlpha=0.85;ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#c9d1d9';ctx.font='9px system-ui,sans-serif';ctx.textAlign='center';
+    ctx.fillText(n.l,n.x,n.y+n.r+12);
+  }
+}
+drawGraph();
+
+// ─── Ternary ─────────────────────────────────────────────────────
+const TERNARY = new Uint8Array(64);
+function renderTernary() {
+  const g = document.getElementById('ternary-grid');
+  g.innerHTML = '';
+  const B = ['cell-minus','cell-zero','cell-plus'];
+  for(let i=0;i<64;i++){
+    const d = document.createElement('div'); d.className='ternary-cell '+B[TERNARY[i]+1];
+    g.appendChild(d);
+  }
+  // forward pass
+  const x = [1,-1,0,1,-1,0,1,-1];
+  let r = 0;
+  for(let i=0;i<8;i++) for(let j=0;j<8;j++) r += TERNARY[i*8+j] * x[j];
+  document.getElementById('ternary-result').textContent = r;
+  const plus = TERNARY.filter(v=>v===1).length;
+  const minus = TERNARY.filter(v=>v===-1).length;
+  const zero = 64-plus-minus;
+  document.getElementById('ternary-term').innerHTML =
+    `<div class="line"><span class="prompt">$</span> <span class="output">x = [+1,-1,0,+1,-1,0,+1,-1]</span></div>`+
+    `<div class="line"><span class="prompt">$</span> <span class="output">W·x = ${r}</span></div>`+
+    `<div class="line"><span class="prompt">$</span> <span class="info">+1:${plus}  0:${zero}  -1:${minus}  0 FP mult</span></div>`;
+}
+function randomizeTernary() {
+  for(let i=0;i<64;i++) TERNARY[i] = Math.random()<0.5?1:Math.random()<0.5?0:-1;
+  renderTernary();
+}
+function ternaryGP() {
+  // gaussian truncated to ternary
+  for(let i=0;i<64;i++){
+    const v = Math.random()+Math.random()+Math.random()-1.5; // ~N(0,1)
+    TERNARY[i] = v>0.5?1:v<-0.5?-1:0;
+  }
+  renderTernary();
+}
+randomizeTernary();
+
+// ─── Pulse ───────────────────────────────────────────────────────
+const pt = document.getElementById('pulse-term'); pt.innerHTML = '';
+PULSE.forEach(p=>{
+  const d = document.createElement('div'); d.className='line';
+  d.innerHTML = `<span class="prompt">$</span> <span class="pulse-repo">${p.r}</span> <span class="output">${p.m}</span> <span class="pulse-time">${p.t}</span>`;
+  pt.appendChild(d);
+});
+
+console.log('SuperInstance Fleet Dashboard loaded.');
+console.log(`${REPOS.length} repos, ${AGENTS.length} agents, ${PULSE.length} pulse entries`);
+</script>
+</body>
+</html>
