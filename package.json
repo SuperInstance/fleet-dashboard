@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "name": "fleet-dashboard-backend",
   "version": "1.0.0",
   "description": "Live backend server for the SuperInstance Fleet Dashboard",
