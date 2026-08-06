@@ -1,0 +1,11 @@
+name = "fleet-dashboard"
+main = "worker.js"
+compatibility_date = "2024-09-25"
+account_id = "049ff5e84ecf636b53b162cbb580aae6"
+
+[ai]
+binding = "AI"
+
+[vars]
+GITHUB_USER = "SuperInstance"
+WIKI_API = "https://fleet-wiki.casey-digennaro.workers.dev/api"
