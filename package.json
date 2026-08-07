@@ -1,0 +1,11 @@
+{
+  "name": "fleet-dashboard",
+  "version": "1.0.0",
+  "description": "Real-time fleet status console for the Lucineer fleet",
+  "scripts": {
+    "test": "node tests/test_worker.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "license": "MIT"
+}
