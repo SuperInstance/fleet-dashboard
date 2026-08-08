@@ -54,7 +54,7 @@ const FLEET_REPOS = [
   'symphony-kimi',
   'ternary-tenforward',
   'wesley-cns-adapter',
-  'fleet-pipeline',
+  'dual-band-guard',
 ];
 
 export default {
