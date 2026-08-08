@@ -56,6 +56,13 @@ const FLEET_REPOS = [
   'ternary-tenforward',
   'wesley-cns-adapter',
   'dual-band-guard',
+  'confidence-cascade',
+  'stigmergy',
+  'platonic-randomness',
+  'voxel-logic',
+  'logtensor',
+  'plato-spatial',
+  'flow-state',
 ];
 
 export default {
