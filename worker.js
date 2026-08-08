@@ -38,6 +38,7 @@ const FLEET_REPOS = [
   'thought-amplifier',
   'voice-reflex-gate',
   'mud-arena',
+  'the-tap',
   'image-distillation-loop',
   'slackwater-rust',
   'slackwater-cognition',
