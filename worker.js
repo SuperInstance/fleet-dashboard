@@ -56,6 +56,7 @@ const FLEET_REPOS = [
   'ternary-tenforward',
   'wesley-cns-adapter',
   'dual-band-guard',
+  'hermes-nmi',
   'confidence-cascade',
   'stigmergy',
   'platonic-randomness',
@@ -63,6 +64,7 @@ const FLEET_REPOS = [
   'logtensor',
   'plato-spatial',
   'flow-state',
+  'claw',
 ];
 
 export default {
@@ -201,11 +203,22 @@ async function fetchRepoData(token) {
   }
   const validRepos = results.filter(Boolean);
 
+  // Compute language breakdown
+  const langCounts = {};
+  for (const r of validRepos) {
+    const lang = r.language || 'Other';
+    langCounts[lang] = (langCounts[lang] || 0) + 1;
+  }
+  const languageBreakdown = Object.entries(langCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([language, count]) => ({ language, count, percentage: ((count / validRepos.length) * 100).toFixed(1) }));
+
   return {
     repos: validRepos,
     totalRepos: validRepos.length,
     totalStars: validRepos.reduce((sum, r) => sum + r.stars, 0),
     totalIssues: validRepos.reduce((sum, r) => sum + r.openIssues, 0),
+    languageBreakdown,
   };
 }
 
@@ -786,6 +799,11 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
       <div class="stat-value mono" id="stat-agents">—</div>
       <div class="stat-detail" id="stat-agents-detail">Openrooms</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-label">Languages</div>
+      <div class="stat-value mono" id="stat-langs">—</div>
+      <div class="stat-detail" id="stat-langs-detail">Across fleet</div>
+    </div>
   </div>
 
   <!-- Wesley highlight -->
@@ -798,6 +816,17 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   </div>
 
   <div class="two-col">
+    <!-- Language Breakdown -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Language Breakdown</span>
+        <span class="section-count" id="lang-count">—</span>
+      </div>
+      <div id="lang-list">
+        <div class="loading">Counting tongues</div>
+      </div>
+    </div>
+
     <!-- Recent Commits -->
     <div class="section">
       <div class="section-header">
@@ -908,6 +937,25 @@ function renderData(data) {
   const openrooms = data.openrooms || {};
   document.getElementById('stat-agents').textContent = openrooms.agentCount || '—';
   document.getElementById('stat-agents-detail').textContent = openrooms.note || 'Openrooms active';
+
+  // Languages
+  const langBreakdown = repos.languageBreakdown || [];
+  document.getElementById('stat-langs').textContent = langBreakdown.length || '—';
+  document.getElementById('stat-langs-detail').textContent = langBreakdown.length ? langBreakdown.map(l => l.language + ' ' + l.count).join(' · ') : 'Loading';
+  document.getElementById('lang-count').textContent = langBreakdown.length + ' languages';
+  document.getElementById('lang-list').innerHTML = langBreakdown.length
+    ? langBreakdown.map(l => {
+      const pct = parseFloat(l.percentage);
+      const barColor = l.language === 'TypeScript' ? '#3178c6' : l.language === 'Python' ? '#3776ab' : l.language === 'Rust' ? '#dea584' : l.language === 'Lua' ? '#000080' : 'var(--copper)';
+      return \`<div class="commit-item" style=\"align-items:center\">
+        <span class=\"repo-name\" style=\"flex:0 0 100px\">\${l.language}</span>
+        <div style=\"flex:1;height:18px;background:rgba(196,119,74,0.06);border-radius:3px;overflow:hidden\">
+          <div style=\"width:\${pct}%;height:100%;background:\${barColor};border-radius:3px;transition:width .3s\"></div>
+        </div>
+        <span class=\"mono\" style=\"flex:0 0 60px;text-align:right;font-size:0.75rem;color:var(--text-muted)\">\${l.count} repo\${l.count > 1 ? 's' : ''} · \${pct}%</span>
+      </div>\`;
+    }).join('')
+    : '<div class="loading">No language data</div>';
 
   // Commits
   const commits = data.commits || [];
