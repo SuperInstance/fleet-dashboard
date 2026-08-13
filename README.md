@@ -252,6 +252,153 @@ No `package.json`. No `node_modules`. No `dist/`. No build scripts. The delivera
 
 ---
 
+## Quick Start
+
+### Just Open It
+
+```bash
+git clone https://github.com/SuperInstance/fleet-dashboard.git
+cd fleet-dashboard
+open index.html        # macOS
+xdg-open index.html    # Linux
+start index.html       # Windows
+```
+
+That's it. The dashboard is a single HTML file with zero dependencies.
+
+### Deploy as a Worker
+
+The repo also includes a `worker.js` that serves the dashboard from [Cloudflare Workers](https://workers.cloudflare.com/) and provides a live API:
+
+```bash
+npx wrangler deploy
+# → https://fleet-dashboard.your-subdomain.workers.dev
+```
+
+### Local Server
+
+```bash
+python3 -m http.server 8080
+# → http://localhost:8080
+```
+
+---
+
+## API Reference (Worker)
+
+When deployed as a Worker, the dashboard provides:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/` | Dashboard HTML page |
+| GET | `/api/fleet-status` | Live fleet status: repos, commits, test counts |
+| GET | `/api/wiki-stats` | Wiki page count, word count |
+| GET | `/api/health` | Worker health check |
+
+Data sources:
+- [GitHub API](https://docs.github.com/en/rest) — commits, repos, test counts
+- [Fleet Wiki API](https://fleet-wiki.casey-digennaro.workers.dev/api) — page count
+- Static config for quota/cron status
+
+---
+
+## Configuration
+
+The `worker.js` file contains hardcoded configuration:
+
+```javascript
+const GITHUB_USER = 'SuperInstance';
+const WIKI_API = 'https://fleet-wiki.casey-digennaro.workers.dev/api';
+const FLEET_REPOS = [
+  'study-sunset-ecosystem', 'forgemaster', 'lucineer-brain',
+  'cns-bridge', 'cns-echo', 'cns-monitor',
+  // ...
+];
+```
+
+To track different repos, edit the `FLEET_REPOS` array.
+
+---
+
+## Testing
+
+```bash
+# Worker logic tests
+node tests/test_worker.js
+
+# Visual testing — open in browser and interact
+open index.html
+```
+
+Tests verify:
+- Fleet status data aggregation from GitHub API
+- Wiki stats fetching and parsing
+- Error handling for API failures
+
+---
+
+## Deployment
+
+### Cloudflare Workers
+
+```bash
+npx wrangler deploy
+```
+
+### Static Hosting
+
+The `index.html` can be deployed to any static host:
+- [Cloudflare Pages](https://pages.cloudflare.com/)
+- [GitHub Pages](https://pages.github.com/)
+- [Netlify](https://www.netlify.com/)
+- Any web server
+
+### Embed
+
+The dashboard can be embedded in an iframe:
+
+```html
+<iframe src="https://fleet-dashboard.your-subdomain.workers.dev/" 
+        width="100%" height="600"></iframe>
+```
+
+---
+
+## Further Reading
+
+### For Developers
+
+- [Shannon-Hartley Theorem (Wikipedia)](https://en.wikipedia.org/wiki/Shannon%E2%80%93Hartley_theorem) — the law visualized
+- [Information Theory (Wikipedia)](https://en.wikipedia.org/wiki/Information_theory) — the mathematical framework
+- [Canvas API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) — how Panel 1 renders agents
+- [requestAnimationFrame (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame) — 60fps animation
+- [devicePixelRatio (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio) — retina display handling
+
+### For Mathematicians
+
+- [Mutual Information (Wikipedia)](https://en.wikipedia.org/wiki/Mutual_information) — what γ measures
+- [Conditional Entropy (Wikipedia)](https://en.wikipedia.org/wiki/Conditional_entropy) — what η measures
+- [Channel Capacity (Wikipedia)](https://en.wikipedia.org/wiki/Channel_capacity) — what C represents
+- [Law of Large Numbers (Wikipedia)](https://en.wikipedia.org/wiki/Law_of_large_numbers) — why fleet cancellation works
+- [Central Limit Theorem (Wikipedia)](https://en.wikipedia.org/wiki/Central_limit_theorem) — why Σ/n converges
+- [Logarithm (Wikipedia)](https://en.wikipedia.org/wiki/Logarithm) — why log₂(3) ≈ 1.585
+
+### For Engineers
+
+- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/) — deployment platform
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) — deploy command
+- [Zero-Dependency Web Apps](https://www.smashingmagazine.com/2022/01/zero-dependency-web-apps-vanilla-javascript-progressive-enhancement/) — the philosophy behind this dashboard
+- [Web Performance (web.dev)](https://web.dev/performance/) — keeping the dashboard fast
+
+### For Students
+
+- [Binary Numbers (Wikipedia)](https://en.wikipedia.org/wiki/Binary_number) — why information is measured in bits
+- [Ternary Logic (Wikipedia)](https://en.wikipedia.org/wiki/Ternary_logic) — the three-valued signal space
+- [Statistics (Khan Academy)](https://www.khanacademy.org/math/statistics-probability) — understanding convergence
+- [The Signal and the Noise](https://en.wikipedia.org/wiki/The_Signal_and_the_Noise) by Nate Silver — accessible info theory
+
+---
+
 ## Credits
 
 **SuperInstance** — a ternary agent fleet platform built on the conservation law γ + η = C.
