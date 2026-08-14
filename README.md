@@ -243,12 +243,18 @@ The dashboard doesn't teach you the math. It teaches you the *intuition*. Then t
 
 ```
 fleet-dashboard/
-├── index.html      # The entire app (single file, <25KB)
+├── index.html      # The entire front end (single file, <25KB)
+├── worker.js       # Cloudflare Worker: serves index.html + the live fleet API
+├── wrangler.toml   # Worker config (name, account, AI binding)
+├── package.json    # npm scripts: test / dev / deploy
+├── tests/          # Node test suites (worker logic + utilities)
+├── CONTRIBUTING.md # How to contribute
+├── LICENSE         # MIT
 ├── README.md       # This document
 └── .gitignore      # Standard web ignores
 ```
 
-No `package.json`. No `node_modules`. No `dist/`. No build scripts. The deliverable is one HTML file.
+The front end has zero dependencies — no `node_modules`, no `dist/`, no build scripts. The deliverable is one HTML file. The Worker wrapper and its tests are plain Node, also dependency-free.
 
 ---
 
@@ -291,13 +297,13 @@ When deployed as a Worker, the dashboard provides:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Dashboard HTML page |
-| GET | `/api/fleet-status` | Live fleet status: repos, commits, test counts |
-| GET | `/api/wiki-stats` | Wiki page count, word count |
-| GET | `/api/health` | Worker health check |
+| GET | `/api/fleet` | Live fleet status: repos, recent commits, wiki page count, openrooms agents, Wesley's latest, quota, cron (cached 60s, stale-while-revalidate 300s) |
+| GET | `/api/refresh` | Force a fresh gather of all fleet data, bypassing the cache |
 
 Data sources:
-- [GitHub API](https://docs.github.com/en/rest) — commits, repos, test counts
-- [Fleet Wiki API](https://fleet-wiki.casey-digennaro.workers.dev/api) — page count
+- [GitHub API](https://docs.github.com/en/rest) — repos (stars, forks, language, workflow-run proxy for test activity) and recent push events
+- [Fleet Wiki API](https://fleet-wiki.casey-digennaro.workers.dev/api/pages) — page count (with a cached fallback count if the API is unreachable from the Worker)
+- [Openrooms API](https://openrooms.casey-digennaro.workers.dev/api/rooms) — agent/room count
 - Static config for quota/cron status
 
 ---
