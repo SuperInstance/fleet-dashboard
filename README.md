@@ -243,8 +243,9 @@ The dashboard doesn't teach you the math. It teaches you the *intuition*. Then t
 
 ```
 fleet-dashboard/
-├── index.html      # The entire front end (single file, <25KB)
-├── worker.js       # Cloudflare Worker: serves index.html + the live fleet API
+├── index.html      # Standalone conservation-law demo (γ + η = C), <25KB
+├── worker.js       # Cloudflare Worker: serves the LIVE fleet-status dashboard
+│                   #   (embedded DASHBOARD_HTML) + the fleet API — NOT index.html
 ├── wrangler.toml   # Worker config (name, account, AI binding)
 ├── package.json    # npm scripts: test / dev / deploy
 ├── tests/          # Node test suites (worker logic + utilities)
@@ -254,7 +255,16 @@ fleet-dashboard/
 └── .gitignore      # Standard web ignores
 ```
 
-The front end has zero dependencies — no `node_modules`, no `dist/`, no build scripts. The deliverable is one HTML file. The Worker wrapper and its tests are plain Node, also dependency-free.
+### Two dashboards — read this twice
+
+This repo contains **two different front ends**, and it's easy to mix them up:
+
+1. **`index.html` — the conservation-law demo.** The three-panel showcase (fleet cancellation, γ + η = C, polyglot benchmark) described at the top of this README. Zero dependencies, opens from `file://`. It is the *artifact* — the deliverable, the demo.
+2. **`worker.js` — the live fleet-status console.** A *different* dashboard, embedded in the Worker as `DASHBOARD_HTML`. Dark maritime theme, real-time stats (repos, commits, wiki, quota, cron, Wesley's latest watch), backed by the `/api/fleet` endpoint. This is what `wrangler deploy` actually serves.
+
+The Worker does **not** serve `index.html`. If you deploy the Worker and expect the conservation demo, you'll get the live status console instead — and if you open `index.html` and expect live data, it's not there. They are siblings, not layers. The demo teaches the law; the console witnesses the fleet.
+
+Both are dependency-free: no `node_modules`, no `dist/`, no build scripts. The Worker wrapper and its tests are plain Node, also dependency-free.
 
 ---
 
