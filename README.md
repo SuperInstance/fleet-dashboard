@@ -306,6 +306,77 @@ Data sources:
 - [Openrooms API](https://openrooms.casey-digennaro.workers.dev/api/rooms) — agent/room count
 - Static config for quota/cron status
 
+### API Response Schema
+
+`/api/fleet` and `/api/refresh` both return the same top-level object. Every field is **guaranteed to be present** except `wesleyLatest` (may be `null`) and the per-source `error`/`note` fields (present only when something fell back).
+
+```jsonc
+{
+  "timestamp": "2026-08-14T21:00:00.000Z",  // when the gather ran (ISO 8601)
+  "repos": {
+    "repos": [                              // one entry per tracked repo
+      {
+        "name": "forgemaster",
+        "stars": 3,
+        "forks": 1,
+        "language": "Rust",                // '—' when GitHub reports none
+        "updated": "2026-08-01T12:00:00Z", // last push timestamp
+        "description": "...",
+        "openIssues": 2,
+        "workflowRuns": 14                  // successful workflow-run count —
+      }                                     //   a proxy for test activity,
+    ],                                      //   NOT an actual test count
+    "totalRepos": 47,
+    "totalStars": 12,
+    "totalIssues": 5,
+    "languageBreakdown": [                 // sorted by count, desc
+      { "language": "Python", "count": 12, "percentage": "25.5" }
+    ],
+    "error": "..."                          // only when the whole GitHub fetch failed
+  },
+  "commits": [                              // max 10; from the GitHub events API,
+    {                                        //   falls back to polling 5 active repos
+      "repo": "SuperInstance/AI-Writings",
+      "sha": "a9b8e3e",                    // 7-char short SHA
+      "message": "docs: first line only",
+      "author": "eileen",
+      "time": "2026-08-14T20:44:00Z"
+    }
+  ],
+  "wiki": {
+    "pageCount": 280,                       // 280 is a hardcoded fallback —
+    "recentPages": [                        //   see `note` when it's used
+      { "slug": "compass-head", "title": "The Compass Head" }
+    ],
+    "note": "Cached count — API unavailable from Worker"  // only on fallback
+  },
+  "openrooms": {
+    "agentCount": 12,                       // 12 is a hardcoded fallback — see `note`
+    "rooms": [ { "name": "the-tap", "status": "active" } ],
+    "note": "Estimated — API unavailable"  // only on fallback
+  },
+  "wesleyLatest": {                          // null when nothing found
+    "title": "docs: compass-head episode",
+    "sha": "a9b8e3e",
+    "time": "2026-08-14T20:44:00Z"
+  },
+  "quota": {                                 // static, hardcoded in worker.js
+    "deepseek": { "status": "active", "note": "...", "plan": "..." }
+  },
+  "cron": [                                  // static, hardcoded in worker.js
+    { "name": "Fleet Wiki Sync", "schedule": "*/5 * * * *", "status": "active" }
+  ]
+}
+```
+
+**Behavior notes:**
+
+- **Repos are silently dropped on error** — a repo that fails to fetch is filtered out, so `totalRepos` may be less than the `FLEET_REPOS` list length. The count you see is the number that answered.
+- **`workflowRuns` is a proxy, not a fact.** The GitHub API does not expose per-run test counts cheaply, so the dashboard counts successful workflow runs (`actions/runs?per_page=1&status=success`). Treat it as "CI has been green N times," not "N tests passed."
+- **Wiki and Openrooms counts lie when they fall back** — the Worker-to-Worker fetch can fail silently, and the dashboard then serves hardcoded estimates (280 pages, 12 agents) with a `note` field explaining it. The UI does not currently surface these notes.
+- **`wesleyLatest` is best-effort** — it scans the 30 most recent AI-Writings commits for "wesley" / "ensign" in the message; if none match it shows the latest commit anyway; if the API fails it is `null`.
+- **Cache**: responses are cached 60s (`s-maxage=60`), stale-while-revalidate 300s. `/api/refresh` bypasses the cache by re-gathering, but the Cloudflare edge may still hold the response.
+
 ---
 
 ## Configuration
