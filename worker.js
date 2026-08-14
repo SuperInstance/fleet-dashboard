@@ -1001,7 +1001,8 @@ function renderData(data) {
   if (data.wesleyLatest) {
     document.getElementById('wesley-section').style.display = 'block';
     document.getElementById('wesley-title').textContent = data.wesleyLatest.title?.replace(/-/g, ' ') || 'Untitled';
-    document.getElementById('wesley-subtitle').textContent = 'github.com/SuperInstance/AI-Writings/' + data.wesleyLatest.path;
+    // The API returns { title, sha, time } — no `path` field. Link to the commit by SHA.
+    document.getElementById('wesley-subtitle').textContent = 'github.com/SuperInstance/AI-Writings/commit/' + data.wesleyLatest.sha;
   }
 
   // Quota

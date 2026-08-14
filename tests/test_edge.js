@@ -1424,6 +1424,24 @@ async function run() {
   });
 
   // ═══════════════════════════════════════════════
+  // SECTION 12: worker.js embedded dashboard — regression
+  // ═══════════════════════════════════════════════
+  console.log('\n--- worker.js Embedded Dashboard ---');
+
+  await test('wesley card renders the sha, not a nonexistent path field', () => {
+    // Regression: the API returns { title, sha, time } but the frontend
+    // used to read `data.wesleyLatest.path`, rendering "undefined" live.
+    assert.ok(
+      workerSource.includes('data.wesleyLatest.sha'),
+      'Embedded dashboard should read wesleyLatest.sha'
+    );
+    assert.ok(
+      !workerSource.includes('wesleyLatest.path'),
+      'Embedded dashboard should not reference the nonexistent path field'
+    );
+  });
+
+  // ═══════════════════════════════════════════════
   // SUMMARY
   // ═══════════════════════════════════════════════
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
