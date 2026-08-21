@@ -397,7 +397,7 @@ The `worker.js` file contains hardcoded configuration:
 const GITHUB_USER = 'SuperInstance';
 const WIKI_API = 'https://fleet-wiki.casey-digennaro.workers.dev/api';
 const FLEET_REPOS = [
-  'study-sunset-ecosystem', 'forgemaster', 'lucineer-brain',
+  'study-sunset-ecosystem', 'forgemaster', 'lucineer-system',
   'cns-bridge', 'cns-echo', 'cns-monitor',
   // ...
 ];
