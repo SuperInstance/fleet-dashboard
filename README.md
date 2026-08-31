@@ -2,6 +2,10 @@
 
 > *Mathematics is felt before it's understood. This dashboard lets you FEEL the conservation law.*
 
+<p align="center">
+  <img src="assets/images/hero-dashboard.jpg" width="680" alt="The law as lamplight: amber gauges on a midnight console where the conservation identity breathes">
+</p>
+
 ---
 
 ## What Is This?
